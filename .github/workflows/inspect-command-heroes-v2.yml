@@ -1,0 +1,59 @@
+name: Inspect Command Heroes V2
+
+on:
+  push:
+    paths:
+      - "command-heroes-v2-proyecto.zip"
+      - ".github/workflows/inspect-command-heroes-v2.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Inspect uploaded project archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="command-heroes-v2-proyecto.zip"
+          test -f "$archive" || { echo "::error::No se encontró $archive en la raíz del repositorio"; exit 1; }
+          work="$RUNNER_TEMP/chv2-inspect"
+          mkdir -p "$work"
+          unzip -q "$archive" -d "$work"
+          report="$GITHUB_WORKSPACE/inspection-report.txt"
+          {
+            echo "=== ARCHIVO ==="
+            ls -lh "$archive"
+            echo
+            echo "=== ESTRUCTURA (hasta 5 niveles) ==="
+            find "$work" -maxdepth 5 -type f | sed "s#^$work/##" | sort | head -500
+            echo
+            echo "=== ARCHIVOS DE CONFIGURACIÓN ==="
+            while IFS= read -r f; do
+              case "$f" in
+                */build.gradle|*/build.gradle.kts|*/settings.gradle|*/settings.gradle.kts|*/gradle.properties|*/gradle/wrapper/gradle-wrapper.properties|*/src/main/resources/META-INF/mods.toml|*/src/main/resources/META-INF/neoforge.mods.toml|*/src/main/resources/fabric.mod.json|*/src/main/resources/mcmod.info)
+                  echo
+                  echo "----- ${f#"$work"/"} -----"
+                  sed -n '1,260p' "$f"
+                  ;;
+              esac
+            done < <(find "$work" -type f | sort)
+            echo
+            echo "=== REFERENCIAS A GECKOLIB EN EL PROYECTO ==="
+            grep -RniE 'geckolib|software\\.bernie' "$work" --include='*.gradle' --include='*.gradle.kts' --include='*.toml' --include='*.java' --include='*.kt' --include='*.json' | head -300 || true
+          } > "$report"
+          cat "$report"
+
+      - name: Upload inspection report
+        uses: actions/upload-artifact@v4
+        with:
+          name: command-heroes-v2-inspection
+          path: inspection-report.txt
+          if-no-files-found: error
+          retention-days: 7
