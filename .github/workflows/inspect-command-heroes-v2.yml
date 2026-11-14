@@ -39,14 +39,14 @@ jobs:
               case "$f" in
                 */build.gradle|*/build.gradle.kts|*/settings.gradle|*/settings.gradle.kts|*/gradle.properties|*/gradle/wrapper/gradle-wrapper.properties|*/src/main/resources/META-INF/mods.toml|*/src/main/resources/META-INF/neoforge.mods.toml|*/src/main/resources/fabric.mod.json|*/src/main/resources/mcmod.info)
                   echo
-                  echo "----- ${f#"$work"/"} -----"
+                  echo "----- $f -----"
                   sed -n '1,260p' "$f"
                   ;;
               esac
             done < <(find "$work" -type f | sort)
             echo
             echo "=== REFERENCIAS A GECKOLIB EN EL PROYECTO ==="
-            grep -RniE 'geckolib|software\\.bernie' "$work" --include='*.gradle' --include='*.gradle.kts' --include='*.toml' --include='*.java' --include='*.kt' --include='*.json' | head -300 || true
+            grep -RniE 'geckolib|software[.]bernie' "$work" --include='*.gradle' --include='*.gradle.kts' --include='*.toml' --include='*.java' --include='*.kt' --include='*.json' | head -300 || true
           } > "$report"
           cat "$report"
 
